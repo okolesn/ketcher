@@ -20,6 +20,7 @@ jobs:
       contents: write
       issues: write
       pull-requests: read
+      id-token: write
     steps:
       - name: Generate test scenarios
         id: generate-test-scenarios
