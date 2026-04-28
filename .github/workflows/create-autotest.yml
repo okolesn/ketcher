@@ -1,0 +1,170 @@
+name: Create Playwright Test for Autotest Request Issue
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  create-autotest-script:
+    if: >
+      github.event.label.name == 'Run TA creation workflow' &&
+      (
+        github.event.issue.issue_type.name == 'Task' ||
+        github.event.issue.type.name == 'Task' ||
+        github.event.issue.issue_type == 'Task' ||
+        github.event.issue.type == 'Task'
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare generation context
+        id: generate
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+
+            const hasAutotestLabel = issue.labels?.some((label) => {
+              if (typeof label === 'string') {
+                return label === 'Autotests';
+              }
+
+              return label?.name === 'Autotests';
+            });
+
+            if (!hasAutotestLabel) {
+              throw new Error('Autotest Request issue must have the "Autotests" label before PR generation can start.');
+            }
+
+            const checklistMatches = issue.body?.match(/^\s*-\s\[(?: |x|X)\]\s+.+$/gm) ?? [];
+            if (checklistMatches.length === 0) {
+              throw new Error('Autotest Request issue must contain at least one markdown checklist item before PR generation can start.');
+            }
+
+            const featureTitle = issue.title.replace(/^Autotests:\s*/i, '').trim();
+            const featureDescription = issue.body?.trim() || '(none)';
+            const sanitizedFeatureDirectoryName = featureTitle
+              .replace(/[<>:"/\\|?*\x00-\x1F]/g, '-')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .replace(/[. ]+$/g, '') || `issue-${issue.number}`;
+            const featureDirectory = `#${issue.number} - ${sanitizedFeatureDirectoryName}`;
+
+            const slug = featureTitle
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-|-$/g, '')
+              .slice(0, 50) || `issue-${issue.number}`;
+            const branchName = `autotest/issue-${issue.number}-${slug}`;
+            const fileName = `${slug}-${issue.number}.spec.ts`;
+            const filePath = `ketcher-autotests/tests/specs/Chromium-popup/Features/${featureDirectory}/${fileName}`;
+
+            core.setOutput('branch_name', branchName);
+            core.setOutput('file_path', filePath);
+            core.setOutput('feature_title', featureTitle);
+            core.setOutput('feature_description', featureDescription);
+            core.setOutput('issue_number', String(issue.number));
+            core.setOutput('issue_title', issue.title);
+            core.setOutput('issue_url', issue.html_url);
+
+      - name: Generate Playwright test via Claude
+        id: generate-test
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            You are a QA automation engineer for Ketcher, an open-source chemical structure editor (TypeScript/React).
+            Generate a Playwright autotest for the feature described below.
+
+            Feature title: ${{ steps.generate.outputs.feature_title }}
+            Feature description:
+            ${{ steps.generate.outputs.feature_description }}
+
+            Test request issue: ${{ steps.generate.outputs.issue_url }}
+
+            Exactly follow "Ketcher Test Conventions" section from @CLAUDE.md file, don't scan the project files.
+            Return only the structured result requested by the schema.
+
+          claude_args: |
+            --model claude-sonnet-4-20250514
+            --json-schema {"type":"object","properties":{"spec":{"type":"string"},"additionalFiles":{"type":"array","items":{"type":"object","properties":{"path":{"type":"string","pattern":"^ketcher-autotests/tests/(pages|utils)/.+$"},"content":{"type":"string"}},"required":["path","content"],"additionalProperties":false}}},"required":["spec","additionalFiles"],"additionalProperties":false}
+
+      - name: Write generated files and push branch
+        if: ${{ steps.generate.outputs.branch_name != '' && steps.generate.outputs.file_path != '' }}
+        uses: anthropics/claude-code-action@beta
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          prompt: |
+            You are operating in a GitHub Actions workspace for Ketcher.
+
+            Parse this JSON string from the previous Claude step and use it as the source of truth:
+            ${{ steps.generate-test.outputs.structured_output }}
+
+            Required output file path for the generated spec:
+            ${{ steps.generate.outputs.file_path }}
+
+            Branch name:
+            ${{ steps.generate.outputs.branch_name }}
+
+            Commit message:
+            Autotests: ${{ steps.generate.outputs.feature_title }} (#${{ steps.generate.outputs.issue_number }})
+
+            Task:
+            1. Parse the JSON string.
+            2. Validate that `spec` is a non-empty string.
+            3. Validate that `additionalFiles`, if present, is an array of objects with string `path` and `content`.
+            4. Only allow `additionalFiles` paths under:
+               - `ketcher-autotests/tests/pages/`
+               - `ketcher-autotests/tests/utils/`
+               If any path is invalid, fail the run.
+            5. Write the trimmed `spec` content to `${{ steps.generate.outputs.file_path }}`.
+            6. Write each additional file with trimmed content.
+            7. Configure git as `github-actions[bot]`.
+            8. Create and switch to branch `${{ steps.generate.outputs.branch_name }}`.
+            9. Stage the generated spec and any created or modified files under `ketcher-autotests/tests/pages` and `ketcher-autotests/tests/utils`.
+            10. Commit with the exact message above.
+            11. Push the branch to `origin`.
+
+            Keep changes limited to the generated files and the git operations above.
+          allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
+
+      - name: Create Pull Request and link to issue
+        if: ${{ steps.generate.outputs.branch_name != '' && steps.generate.outputs.issue_number != '' && steps.generate.outputs.issue_title != '' }}
+        uses: actions/github-script@v7
+        env:
+          BRANCH_NAME: ${{ steps.generate.outputs.branch_name }}
+          ISSUE_NUMBER: ${{ steps.generate.outputs.issue_number }}
+          ISSUE_TITLE: ${{ steps.generate.outputs.issue_title }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        with:
+          script: |
+            const issueNumber = Number(process.env.ISSUE_NUMBER);
+            const issueTitle = process.env.ISSUE_TITLE;
+            const branchName = process.env.BRANCH_NAME;
+            const defaultBranch = process.env.DEFAULT_BRANCH;
+
+            const { data: pr } = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `#${issueNumber} - ${issueTitle}`,
+              head: branchName,
+              base: defaultBranch,
+              body: `Closes #${issueNumber}\n\n> Generated by Claude - review imports, selectors, and assertions before merging.`,
+            });
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: `Generated Playwright test: ${pr.html_url}`,
+            });

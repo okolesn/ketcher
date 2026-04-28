@@ -1,91 +1,91 @@
-name: Create Autotest Request for Feature PRs
+name: Create Autotest Request
 
 on:
-  pull_request:
+  issues:
     types: [labeled]
-
-permissions:
-  contents: read
-  pull-requests: write
-  issues: write
 
 jobs:
   create-autotest-request:
-    if: github.event.label.name == 'feature'
+    if: >
+      github.event.label.name == 'Run TA creation workflow' &&
+      (
+        github.event.issue.issue_type.name == 'Feature' ||
+        github.event.issue.type.name == 'Feature' ||
+        github.event.issue.issue_type == 'Feature' ||
+        github.event.issue.type == 'Feature'
+      )
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Generate test scenarios
+        id: generate-test-scenarios
+        uses: anthropics/claude-code-action@v1
         with:
-          fetch-depth: 0
-
-      - name: Get PR diff
-        id: diff
-        run: |
-          git fetch origin ${{ github.event.pull_request.base.ref }}
-          git diff origin/${{ github.event.pull_request.base.ref }}...HEAD --stat > diff_stat.txt
-          git diff origin/${{ github.event.pull_request.base.ref }}...HEAD -- \
-            'packages/ketcher-core/src/**' \
-            'packages/ketcher-react/src/**' \
-            'packages/ketcher-macromolecules/src/**' \
-            'packages/ketcher-standalone/src/**' \
-            | head -500 > diff_content.txt
-
-      - name: Generate autotest request with Claude
-        uses: anthropics/claude-code-action@beta
-        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            You are an QA automation engineer for Ketcher — an open-source web-based chemical structure editor (TypeScript, React, Redux, SVG rendering).
+            You are a QA engineer for Ketcher, an open-source chemical structure editor (TypeScript/React).
+            Generate a concise checklist of test scenarios that automated tests should cover. Include the happy path and the most important edge cases.
 
-            A new feature PR has been labeled for autotest coverage:
+            Feature title: ${{ github.event.issue.title }}
+            Feature description:
+            ${{ github.event.issue.body || '(none)' }}
 
-            PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
-            Author: ${{ github.event.pull_request.user.login }}
-            Branch: ${{ github.event.pull_request.head.ref }}
+            Rules:
+            - Return a JSON object with one field: "checklist".
+            - "checklist" must be a markdown checklist only, with each line starting with "- [ ]".
+            - Do not include headings, code fences, or prose outside the checklist.
+            - Each item must be one testable scenario in plain language.
+            - Be specific to Ketcher's domain (molecules, bonds, atoms, reactions, monomers) where relevant.
+            - Maximum 15 items.
+          claude_args: |
+            --model claude-sonnet-4-20250514
+            --json-schema {"type":"object","properties":{"checklist":{"type":"string"}},"required":["checklist"],"additionalProperties":false}
 
-            PR Description:
-            ${{ github.event.pull_request.body }}
+      - name: Create Autotest Request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const sourceLink = issue.html_url;
+            const featureTitle = issue.title;
 
-            Changed files summary (diff_stat.txt):
-            $(cat diff_stat.txt)
+            let structuredOutput;
+            try {
+              structuredOutput = JSON.parse(`${{ toJSON(steps.generate-test-scenarios.outputs.structured_output) }}`);
+            } catch (error) {
+              throw new Error(`Claude Code Action returned invalid structured output: ${error.message}`);
+            }
 
-            Key source changes (diff_content.txt — first 500 lines):
-            $(cat diff_content.txt)
+            const generatedText = structuredOutput.checklist?.trim();
+            if (!generatedText) {
+              throw new Error('Claude Code Action did not include generated test scenarios.');
+            }
 
-            Your tasks:
-            1. Read a few existing autotest spec files in `ketcher-autotests/tests/specs/` to understand the project's test style and what is already covered.
-            2. Analyze the PR changes to understand exactly what the new feature does and what user-visible behavior changed.
-            3. Create a GitHub Issue using the following format (matching the project's autotest_request template):
+            const testScenarios = generatedText
+              .replace(/^```(?:markdown|md)?\s*/i, '')
+              .replace(/\s*```$/, '');
 
-               Title: "Autotests: ${{ github.event.pull_request.title }}"
-               Labels: Autotests
-               Body:
-               ```
-               **Source task(s):**
-                - #${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}
+            const checklistMatches = testScenarios.match(/^\s*-\s\[(?: |x|X)\]\s+.+$/gm) ?? [];
+            if (checklistMatches.length === 0) {
+              throw new Error('Claude Code Action did not include any markdown checklist items.');
+            }
 
-               **Feature summary:**
-               <1-2 sentence description of what the feature does>
+            const { data: createdIssue } = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Autotests: ${featureTitle}`,
+              body: `**Source task(s):**\n- ${sourceLink}\n\n**Suggested test scenarios:**\n${testScenarios}`,
+              labels: ['Autotests'],
+              type: 'Task',
+            });
 
-               **Test scenarios to cover:**
-               - [ ] <scenario 1>
-               - [ ] <scenario 2>
-               ...
-
-               **Files likely to change in ketcher-autotests:**
-               - `tests/specs/<Category>/<feature-name>.spec.ts` (new file)
-               - `tests/pages/<Category>/<PageObject>.ts` (if new UI elements involved)
-
-               **Test data needed:**
-               - <list any mol/cdx/fasta files needed for test-data/>
-
-               **Notes:**
-               <chemistry-specific considerations, edge cases, stereochemistry, macromolecule concerns if applicable>
-               ```
-            4. After creating the issue, post a comment on PR #${{ github.event.pull_request.number }} linking to the created issue:
-               "🧪 Autotest request created: <issue-link>. Review the scenarios and then comment `@claude implement autotests <issue-number>` on this PR to generate the implementation."
-
-            Use `gh issue create` and `gh pr comment` via Bash to create the issue and comment.
-          allowed_tools: "Bash,Read,Glob,Grep"
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            // Reply in the source issue with a link to the created issue.
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: `Autotest request created: ${createdIssue.html_url}\n\nAdd the \`Run TA creation workflow\` label to that issue when the automation checklist is ready for PR generation.`,
+            });
