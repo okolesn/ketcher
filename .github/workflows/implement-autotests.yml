@@ -38,6 +38,7 @@ jobs:
       - name: Implement autotests with Claude
         uses: anthropics/claude-code-action@beta
         with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             You are implementing Playwright autotests for Ketcher.
             
@@ -60,5 +61,4 @@ jobs:
             4. Post a comment on issue #${{ github.event.issue.number }} with a link to the new autotest PR.
           allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
