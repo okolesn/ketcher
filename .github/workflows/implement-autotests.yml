@@ -35,6 +35,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Create autotests branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b autotests/issue-${{ github.event.issue.number }}
+          git push origin autotests/issue-${{ github.event.issue.number }}
+
       - name: Implement autotests with Claude
         uses: anthropics/claude-code-action@beta
         with:
@@ -53,13 +60,12 @@ jobs:
 
             ## After implementing
 
-            Create and push the branch with your changes:
-            1. `git checkout -b autotests/issue-${{ github.event.issue.number }}`
-            2. `git add ketcher-autotests/`
-            3. `git commit -m "Autotests: ${{ steps.issue.outputs.title }}"`
-            4. `git push origin "autotests/issue-#${{ github.event.issue.number }} - ${{ steps.issue.outputs.title }}"`
+            Stage, commit, and push your changes to the current branch:
+            1. `git add ketcher-autotests/`
+            2. `git commit -m "Autotests: ${{ steps.issue.outputs.title }}"`
+            3. `git push origin autotests/issue-${{ github.event.issue.number }}`
 
-            Stop after pushing. Do NOT create a PR or post any comments — those steps are handled by the workflow.
+            Do NOT create a new branch, PR, or issue comment — those are handled by the workflow.
           allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -68,9 +74,9 @@ jobs:
         id: create_pr
         run: |
           PR_URL=$(gh pr create \
-            --title "#${{ github.event.issue.number }} - ${{ steps.issue.outputs.title }}" \
+            --title "Autotests: ${{ steps.issue.outputs.title }}" \
             --body "Implements autotests for #${{ github.event.issue.number }}" \
-            --head "autotests/issue-#${{ github.event.issue.number }} - ${{ steps.issue.outputs.title }}")
+            --head "autotests/issue-${{ github.event.issue.number }}")
           echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
