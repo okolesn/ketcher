@@ -1,6 +1,6 @@
 name: Implement Autotests
 
-# Trigger: comment "@claude implement autotests" on an issue with 'Autotest' label
+# Trigger: comment "@claude implement autotests" on an issue with 'Autotests' label
 on:
   issue_comment:
     types: [created]
@@ -12,9 +12,9 @@ permissions:
 
 jobs:
   implement-autotests:
-    # Only run on issue comments where the issue has the 'Autotest' label
+    # Only run on issue comments where the issue has the 'Autotests' label
     if: |
-      contains(github.event.issue.labels.*.name, 'Autotest') &&
+      contains(github.event.issue.labels.*.name, 'Autotests') &&
       contains(github.event.comment.body, '@claude implement autotests')
     runs-on: ubuntu-latest
     steps:
