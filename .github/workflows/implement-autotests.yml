@@ -8,7 +8,7 @@ on:
 permissions:
   contents: write
   issues: write
-  pull-requests: read
+  pull-requests: write
   id-token: write
   actions: read # Required for Claude to read CI results on PRs
 
@@ -41,7 +41,7 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             You are implementing Playwright autotests for Ketcher.
-            
+
             Autotest request issue: #${{ github.event.issue.number }} — ${{ steps.issue.outputs.title }}
 
             Issue details:
@@ -53,12 +53,31 @@ jobs:
 
             ## After implementing
 
-            1. Create a new branch named `autotests/issue-${{ github.event.issue.number }}` from the current branch.
-            2. Commit all new/changed files with message: `Autotests: ${{ steps.issue.outputs.title }}`
-            3. Push the branch and open a PR targeting the default branch with:
-               - Title: `Autotests: ${{ steps.issue.outputs.title }}`
-               - Body referencing the autotest request issue #${{ github.event.issue.number }}
-            4. Post a comment on issue #${{ github.event.issue.number }} with a link to the new autotest PR.
+            Create and push the branch with your changes:
+            1. `git checkout -b autotests/issue-${{ github.event.issue.number }}`
+            2. `git add ketcher-autotests/`
+            3. `git commit -m "Autotests: ${{ steps.issue.outputs.title }}"`
+            4. `git push origin "autotests/issue-#${{ github.event.issue.number }} - ${{ steps.issue.outputs.title }}"`
+
+            Stop after pushing. Do NOT create a PR or post any comments — those steps are handled by the workflow.
           allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create pull request
+        id: create_pr
+        run: |
+          PR_URL=$(gh pr create \
+            --title "#${{ github.event.issue.number }} - ${{ steps.issue.outputs.title }}" \
+            --body "Implements autotests for #${{ github.event.issue.number }}" \
+            --head "autotests/issue-#${{ github.event.issue.number }} - ${{ steps.issue.outputs.title }}")
+          echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on issue
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --body "Autotest PR created: ${{ steps.create_pr.outputs.pr_url }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
