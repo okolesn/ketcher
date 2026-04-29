@@ -1,6 +1,6 @@
 name: Implement Autotests
 
-# Trigger: comment "@claude implement autotests <issue-number>" on a PR
+# Trigger: comment "@claude implement autotests" on an issue with 'Autotest' label
 on:
   issue_comment:
     types: [created]
@@ -12,43 +12,23 @@ permissions:
 
 jobs:
   implement-autotests:
-    # Only run on PR comments (not issue comments) matching the trigger phrase
+    # Only run on issue comments where the issue has the 'Autotest' label
     if: |
-      github.event.issue.pull_request != null &&
+      contains(github.event.issue.labels.*.name, 'Autotest') &&
       contains(github.event.comment.body, '@claude implement autotests')
     runs-on: ubuntu-latest
     steps:
-      - name: Extract issue number from comment
-        id: parse
-        run: |
-          ISSUE_NUMBER=$(echo "${{ github.event.comment.body }}" | grep -oP '@claude implement autotests \K\d+' || echo "")
-          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
-
-      - name: Get PR info
-        id: pr
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-            });
-            core.setOutput('head_ref', pr.data.head.ref);
-            core.setOutput('head_sha', pr.data.head.sha);
-            core.setOutput('title', pr.data.title);
-
       - uses: actions/checkout@v4
         with:
-          ref: ${{ steps.pr.outputs.head_ref }}
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get autotest request details
         id: issue
-        if: steps.parse.outputs.issue_number != ''
         run: |
-          gh issue view ${{ steps.parse.outputs.issue_number }} --json title,body > autotest_issue.json
+          gh issue view ${{ github.event.issue.number }} --json title,body > autotest_issue.json
+          ISSUE_TITLE=$(gh issue view ${{ github.event.issue.number }} --json title --jq '.title')
+          echo "title=$ISSUE_TITLE" >> $GITHUB_OUTPUT
           cat autotest_issue.json
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -57,74 +37,25 @@ jobs:
         uses: anthropics/claude-code-action@beta
         with:
           prompt: |
-            You are implementing Playwright autotests for Ketcher — an open-source web-based chemical structure editor (TypeScript, React, Redux).
+            You are implementing Playwright autotests for Ketcher.
+            
+            Autotest request issue: #${{ github.event.issue.number }} — ${{ steps.issue.outputs.title }}
 
-            Feature PR: #${{ github.event.issue.number }} — ${{ steps.pr.outputs.title }}
-            Feature branch: ${{ steps.pr.outputs.head_ref }}
-
-            Autotest request issue:
-            $(cat autotest_issue.json 2>/dev/null || echo "No linked issue found — infer test scenarios from the PR changes instead.")
+            Issue details:
+            $(cat autotest_issue.json)
 
             ## Your task
 
-            Implement all test scenarios from the autotest request in `ketcher-autotests/tests/specs/`.
-
-            ## Ketcher autotests framework rules
-
-            Before writing any test, read these files to understand the patterns:
-            - 2-3 existing spec files in `ketcher-autotests/tests/specs/` (pick ones related to the feature area)
-            - Relevant page objects in `ketcher-autotests/tests/pages/`
-            - `ketcher-autotests/tests/fixtures/` to understand available fixtures
-
-            Then follow these conventions strictly:
-
-            **Test file location:** `ketcher-autotests/tests/specs/<Category>/<feature-name>.spec.ts`
-            - Use the same category as related existing tests
-
-            **Imports:**
-            ```typescript
-            import { test } from '@fixtures';
-            import { takeEditorScreenshot, waitForPageInit } from '@utils';
-            // Page objects as needed
-            ```
-
-            **Test structure:**
-            ```typescript
-            test.describe('Feature Name', () => {
-              test.beforeEach(async ({ page }) => {
-                await waitForPageInit(page);
-              });
-
-              test('scenario description', async ({ page }) => {
-                // use existing page objects via factory functions: RightToolbar(page), etc.
-                // use getByTestId() for locators
-                // call waitForRender() around canvas modifications
-                // end with takeEditorScreenshot(page)
-              });
-            });
-            ```
-
-            **Page objects** (only create if needed):
-            - Factory function pattern: `export const MyPanel = (page: Page) => ({ ... })`
-            - Locators use `page.getByTestId(...)`
-            - File: `ketcher-autotests/tests/pages/<category>/<PanelName>.ts`
-
-            **Test data files** go in `ketcher-autotests/tests/test-data/<format>/`
-
-            **Do NOT:**
-            - Use CSS selectors or XPath when `getByTestId` can work
-            - Introduce new npm packages
-            - Write tests that duplicate existing coverage
+            Implement all test scenarios from the autotest request.
 
             ## After implementing
 
-            1. Run `cd ketcher-autotests && npm run check:code` to validate TypeScript and lint (fix any errors).
-            2. Create a new branch named `autotests/${{ steps.pr.outputs.head_ref }}` from the current branch.
-            3. Commit all new/changed files with message: `Autotests: ${{ steps.pr.outputs.title }}`
-            4. Push the branch and open a PR targeting `${{ steps.pr.outputs.head_ref }}` with:
-               - Title: `Autotests: ${{ steps.pr.outputs.title }}`
-               - Body referencing the feature PR and the autotest request issue
-            5. Post a comment on PR #${{ github.event.issue.number }} with a link to the new autotest PR.
+            1. Create a new branch named `autotests/issue-${{ github.event.issue.number }}` from the current branch.
+            2. Commit all new/changed files with message: `Autotests: ${{ steps.issue.outputs.title }}`
+            3. Push the branch and open a PR targeting the default branch with:
+               - Title: `Autotests: ${{ steps.issue.outputs.title }}`
+               - Body referencing the autotest request issue #${{ github.event.issue.number }}
+            4. Post a comment on issue #${{ github.event.issue.number }} with a link to the new autotest PR.
           allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
