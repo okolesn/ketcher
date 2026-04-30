@@ -14,10 +14,7 @@ Ketcher is an open-source **chemical structure editor** built with TypeScript an
 - If a required page object or helper does not exist, create a reusable file under `ketcher-autotests/tests/pages/...` or `ketcher-autotests/tests/utils/...`. Do not inline long selector chains or duplicate behavior in the spec.
 
 ### File placement
-
-- Put popup-mode UI tests under `ketcher-autotests/tests/specs/Chromium-popup/...`.
-- Keep the folder name aligned with the feature area, for example `Top-Toolbar`, `Monomer-preview`, `Snake-Mode`, `Library`, `API`.
-- Use `*.spec.ts` filenames. Snapshot files are created automatically next to the spec.
+- All generated autotests should be placed under `ketcher-autotests/tests/specs/Chromium-popup/Features/FEATURE_TITLE/...` where FEATURE_TITLE is the corresponding feature title
 
 ### Test structure
 
