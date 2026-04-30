@@ -81,7 +81,7 @@ jobs:
         id: create_pr
         run: |
           PR_URL=$(gh pr create \
-            --title "${{ #${{ github.event.issue.number }} - steps.issue.outputs.title }}" \
+            --title " #${{ github.event.issue.number }} - ${{ steps.issue.outputs.title }}" \
             --body "Closes #${{ github.event.issue.number }}" \
             --head "${{ steps.vars.outputs.branch_name }}" \
             --base master)
