@@ -51,21 +51,16 @@ jobs:
 
             Implement all test scenarios from the autotest request.
 
-#             After implementing
-
-#            Stage, commit, and push your changes to the current branch:
-#            1. `git add ketcher-autotests/`
-#            2. `git commit -m "Autotests: ${{ steps.issue.outputs.title }}"`
-#            3. `git push origin autotests/issue-${{ github.event.issue.number }}`
-#
-#            Do NOT create a new branch, PR, or issue comment — those are handled by the workflow.
           allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get current branch name
         id: vars
-        run: echo "branch_name=$(git branch --show-current)" >> $GITHUB_OUTPUT
+        run: |
+          BRANCH=$(git branch --show-current)
+          echo "Branch name: $BRANCH"
+          echo "branch_name=$BRANCH" >> $GITHUB_OUTPUT
 
       - name: Create pull request
         id: create_pr
@@ -73,7 +68,8 @@ jobs:
           PR_URL=$(gh pr create \
             --title "Autotests: ${{ steps.issue.outputs.title }}" \
             --body "Implements autotests for #${{ github.event.issue.number }}" \
-            --head ${{ steps.vars.outputs.branch_name }}
+            --head "${{ steps.vars.outputs.branch_name }}" \
+            --base main)
           echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
