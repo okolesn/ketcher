@@ -44,9 +44,25 @@ jobs:
             
             const title = issue.title;
             const featureTitle = title.replace(/^Autotests:\s*/i, '').trim();
+            const featureTokens = featureTitle
+              .normalize('NFKD')
+              .replace(/[^\w\s-]+/g, ' ')
+              .split(/[\s_-]+/)
+              .map((token) => token.trim())
+              .filter(Boolean);
+            const featureDir =
+              featureTokens
+                .map((token) =>
+                  /^[A-Z0-9]+$/.test(token)
+                    ? token
+                    : `${token.charAt(0).toUpperCase()}${token.slice(1).toLowerCase()}`,
+                )
+                .join('-') || 'Generated-Feature';
+            const targetDir = `ketcher-autotests/tests/specs/Chromium-popup/Features/${featureDir}`;
             
             core.setOutput('title', title);
-            core.setOutput('feature_title', featureTitle);
+            core.setOutput('feature_dir', featureDir);
+            core.setOutput('target_dir', targetDir);
 
       - name: Implement autotests with Claude
         uses: anthropics/claude-code-action@beta
@@ -60,11 +76,14 @@ jobs:
             Issue details:
             $(cat autotest_issue.json)
             
-            FEATURE_TITLE: ${{ steps.issue.outputs.feature_title }}
+            TARGET_DIR: ${{ steps.issue.outputs.target_dir }}
 
             ## Your task
 
             Implement all test scenarios from the autotest request.
+            Place the generated spec file under TARGET_DIR.
+            If TARGET_DIR does not exist, create it.
+            You may choose the spec filename yourself, but do not place it outside TARGET_DIR.
 
           allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
         env:

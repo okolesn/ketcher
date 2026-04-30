@@ -13,9 +13,6 @@ Ketcher is an open-source **chemical structure editor** built with TypeScript an
 - Generated autotests must reuse existing page objects from `ketcher-autotests/tests/pages` and helpers from `ketcher-autotests/tests/utils` whenever possible.
 - If a required page object or helper does not exist, create a reusable file under `ketcher-autotests/tests/pages/...` or `ketcher-autotests/tests/utils/...`. Do not inline long selector chains or duplicate behavior in the spec.
 
-### File placement
-- All generated autotests should be placed under `ketcher-autotests/tests/specs/Chromium-popup/Features/FEATURE_TITLE/...` where FEATURE_TITLE is the corresponding feature title
-
 ### Test structure
 
 - Prefer one `test.describe()` block per file.
