@@ -73,7 +73,6 @@ jobs:
           PR_URL=$(gh pr create \
             --title "Autotests: ${{ steps.issue.outputs.title }}" \
             --body "Implements autotests for #${{ github.event.issue.number }}" \
-#            --head "autotests/issue-${{ github.event.issue.number }}")
             --head ${{ steps.vars.outputs.branch_name }}
           echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
         env:
