@@ -1,6 +1,6 @@
-name: Implement Autotest
+name: Implement Autotests
 
-# Trigger: comment "@claude implement autotest" on an issue with 'Autotests' label
+# Trigger: comment "@claude implement autotests" on an issue with 'Autotests' label
 on:
   issue_comment:
     types: [created]
@@ -14,11 +14,16 @@ permissions:
 
 jobs:
   implement-autotests:
-    # Only run on issue comments where the issue has the 'Autotests' label
     if: |
       contains(fromJson('["OWNER"]'), github.event.comment.author_association) &&
       contains(github.event.issue.labels.*.name, 'Autotests') &&
-      contains(github.event.comment.body, '@claude implement autotest')
+      contains(github.event.comment.body, '@claude implement autotests') &&
+      (
+        github.event.issue.issue_type.name == 'Task' ||
+        github.event.issue.type.name == 'Task' ||
+        github.event.issue.issue_type == 'Task' ||
+        github.event.issue.type == 'Task'
+      )
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,6 +46,11 @@ jobs:
             if (checklistMatches.length === 0) {
               throw new Error('Autotest Request issue must contain at least one markdown checklist item before PR generation can start.');
             }
+
+            const featureSectionMatch = issue.body?.match(
+            /\*\*Source task\(s\):\*\*\s*([\s\S]*?)(?:\n\s*\n\*\*Suggested test scenarios:\*\*|$)/i,
+            );
+            const featureNumber = featureSectionMatch?.[1]?.match(/\/issues\/(\d+)(?:[/?#\s]|$)/)?.[1];
             
             const title = issue.title;
             const featureTitle = title.replace(/^Autotests:\s*/i, '').trim();
@@ -58,10 +68,10 @@ jobs:
                     : `${token.charAt(0).toUpperCase()}${token.slice(1).toLowerCase()}`,
                 )
                 .join('-') || 'Generated-Feature';
-            const targetDir = `ketcher-autotests/tests/specs/Chromium-popup/Features/${featureDir}`;
+            const finalFeatureDir = `#${featureNumber}-${featureDir}`;
+            const targetDir = `ketcher-autotests/tests/specs/Chromium-popup/Features/${finalFeatureDir}`;
             
             core.setOutput('title', title);
-            core.setOutput('feature_dir', featureDir);
             core.setOutput('target_dir', targetDir);
 
       - name: Implement autotests with Claude
@@ -69,21 +79,12 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            You are implementing Playwright autotests for Ketcher.
-
-            Autotest request issue: #${{ github.event.issue.number }} — ${{ steps.issue.outputs.title }}
-
-            Issue details:
-            $(cat autotest_issue.json)
-            
+            Generate Playwright autotests for Ketcher.
+            Use the generate-playwright-autotests skill.
+            AUTOTEST_REQUEST_URL: ${{ github.event.issue.html_url }}
             TARGET_DIR: ${{ steps.issue.outputs.target_dir }}
-
-            ## Your task
-
-            Implement all test scenarios from the autotest request.
-            Place the generated spec file under TARGET_DIR.
-            If TARGET_DIR does not exist, create it.
-            You may choose the spec filename yourself, but do not place it outside TARGET_DIR.
+            TEST_SCENARIOS:
+            $(cat autotest_issue.json)
 
           allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
         env:
@@ -100,7 +101,7 @@ jobs:
         id: create_pr
         run: |
           PR_URL=$(gh pr create \
-            --title " #${{ github.event.issue.number }} - ${{ steps.issue.outputs.title }}" \
+            --title "#${{ github.event.issue.number }} - ${{ steps.issue.outputs.title }}" \
             --body "Closes #${{ github.event.issue.number }}" \
             --head "${{ steps.vars.outputs.branch_name }}" \
             --base master)
