@@ -17,13 +17,14 @@ jobs:
     if: |
       contains(fromJson('["OWNER"]'), github.event.comment.author_association) &&
       contains(github.event.issue.labels.*.name, 'Autotests') &&
-      contains(github.event.comment.body, '@claude implement autotests') &&
-      (
-        github.event.issue.issue_type.name == 'Task' ||
-        github.event.issue.type.name == 'Task' ||
-        github.event.issue.issue_type == 'Task' ||
-        github.event.issue.type == 'Task'
-      )
+      contains(github.event.comment.body, '@claude implement autotests')
+#      &&
+#      (
+#        github.event.issue.issue_type.name == 'Task' ||
+#        github.event.issue.type.name == 'Task' ||
+#        github.event.issue.issue_type == 'Task' ||
+#        github.event.issue.type == 'Task'
+#      )
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
