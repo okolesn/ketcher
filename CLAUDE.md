@@ -3,32 +3,37 @@
 This file provides guidance to Claude Code (`claude.ai/code`) when working with code in this repository.
 
 ## What is Ketcher
-
 Ketcher is an open-source **chemical structure editor** built with TypeScript and React. It renders molecules, reactions, macromolecules, and monomers using a custom MVC architecture over SVG.
 
 ## Ketcher Test Conventions
-
 - Imports should come from aliases defined in `ketcher-autotests/tsconfig.json`: `@fixtures`, `@utils`, and `@tests/...`. Do not use deep relative imports.
 - The default test entrypoint is `import { Page, test, expect } from '@fixtures';`. `@fixtures` already merges molecules, flex, snake, and sequence canvas fixtures.
 - Generated autotests must reuse existing page objects from `ketcher-autotests/tests/pages` and helpers from `ketcher-autotests/tests/utils` whenever possible.
 - If a required page object or helper does not exist, create a reusable file under `ketcher-autotests/tests/pages/...` or `ketcher-autotests/tests/utils/...`.
 - Do not inline long selector chains or duplicate behavior in the spec.
--
-### Ketcher Autotests Generation
 
-- Playwright autotests should be generated for the test scenarios listed in Autotest Request.
-- Autotest Request has a link to the feature it is intended to test under the **Source task(s):** header. Use the link to get the feature number and title.
+### Ketcher Autotests Generation Instructions
 
-### Files placement
+#### Role
+You are a test automation engineer specializing in Playwright and TypeScript.
 
-- Create `#Feature Number-Feature Title` directory under `ketcher-autotests/tests/specs/Chromium-popup/Features` if it doesn't exist.
-  For example: `ketcher-autotests/tests/specs/Chromium-popup/Features/#3227-Introducing-Copolymer-S-group-type`.
-- Put generated autotests script under the directory.
-- You may choose the script filename yourself, but place it inside the target directory.
-- Use *.spec.ts filenames. Snapshot files are created automatically next to the spec.
+#### Task: Ketcher Autotests Generation
+- Generate Playwright autotests based on the scenarios listed in the provided "Autotest Request".
+- Under the **Source task(s):** header in the request, find the link to the Feature. Use it to get the Feature Issue Number and Feature Title.
+
+#### Output Format
+For each test, provide the output in a clear structure:
+1. **Target Directory:** `ketcher-autotests/tests/specs/Chromium-popup/Features/#<Feature Number>-<Feature Title>`
+2. **Filename:** `<descriptive-name>.spec.ts`
+3. **Code Content:** The full Playwright test script.
+
+#### Constraints & Rules
+- **Folder Naming:** You MUST use the exact format `#<Feature Number>-<Feature Title>`. Don't modify it!
+  - Example: `ketcher-autotests/tests/specs/Chromium-popup/Features/#3227-Introducing-Copolymer-S-group-type`
+- **File Extension:** Use only `.spec.ts`.
+- **Visuals:** Do not worry about snapshot files; they are handled automatically.
 
 ### Test structure
-
 - Prefer one `test.describe()` block per file.
 - Prefer `let page: Page;` at file scope plus `test.beforeAll(async ({ initMoleculesCanvas | initFlexCanvas | initSnakeCanvas | initSequenceCanvas }) => { page = await ...(); })`.
 - Close the browser page in `test.afterAll(async ({ closePage }) => { await closePage(); })`.
@@ -40,7 +45,7 @@ Ketcher is an open-source **chemical structure editor** built with TypeScript an
   - for starting from Macromolecules-Flex mode: initFlexCanvas
   - for starting from Macromolecules-Snake mode: initSnakeCanvas
   - for starting from Macromolecules-Sequence mode: initSequenceCanvas
-    For example:
+    - Example:
 ```ts
   test.beforeAll(async ({ initFlexCanvas }) => {
     page = await initFlexCanvas();
@@ -55,7 +60,7 @@ Ketcher is an open-source **chemical structure editor** built with TypeScript an
   - for switching to Macromolecules-Flex mode: FlexCanvas
   - for switching to Macromolecules-Snake mode: SnakeCanvas
   - for switching to Macromolecules-Sequence mode: SequenceCanvas
-    For example:
+    - Example:
 ```ts
   test.beforeAll(async ({ initSequenceCanvas }) => {
     page = await initSequenceCanvas();
@@ -72,7 +77,7 @@ Ketcher is an open-source **chemical structure editor** built with TypeScript an
   - for running test on Macromolecules-Flex mode: FlexCanvas
   - for running test on Macromolecules-Snake mode: SnakeCanvas
   - for running test on Macromolecules-Sequence mode: SequenceCanvas
-    For example:
+    - Example:
 ```ts
   test('Case 1 — Small molecule positioning rule is not respected when connected to multiple monomers in different chains', async ({
     FlexCanvas: _,
@@ -117,13 +122,11 @@ Ketcher is an open-source **chemical structure editor** built with TypeScript an
 ```
 
 ### Canvas and mode setup
-
 - Use `CommonTopRightToolbar(page).turnOnMacromoleculesEditor()` and `turnOnMicromoleculesEditor()` instead of raw mode-switcher clicks.
 - Use `MacromoleculesTopToolbar(page)` for layout and polymer switching. Existing helpers include `selectLayoutModeTool(LayoutMode.Flex | Snake | Sequence)`, `rna()`, `dna()`, and `peptides()`.
 - For reload/state-persistence tests, prefer existing helpers such as `pageReload(page)`, `pageReloadMicro(page)`, and `clearLocalStorage(page)` from `@utils/common/helpers`.
 
 ### Preferred interaction helpers
-
 - For loading structures, prefer helpers from `@utils` such as `openFileAndAddToCanvasAsNewProject`, `openFileAndAddToCanvasAsNewProjectMacro`, `pasteFromClipboardAndAddToCanvas`, and `pasteFromClipboardAndAddToMacromoleculesCanvas`.
 - For canvas selection and keyboard operations, prefer `selectAllStructuresOnCanvas`, `copyToClipboardByKeyboard`, `pasteFromClipboardByKeyboard`, `undoByKeyboard`, and related helpers.
 - For locating rendered objects, prefer repo helpers such as `getAtomLocator(...)`, `getMonomerLocator(...)`, `getAbbreviationLocator(...)`, and existing page objects.
@@ -131,22 +134,19 @@ Ketcher is an open-source **chemical structure editor** built with TypeScript an
 - Use direct `page.evaluate(...)` only for Ketcher API calls, localStorage checks, or browser APIs that are not already wrapped by helpers.
 
 ### Assertions and snapshots
-
 - Use standard Playwright assertions for state and text: `toBeVisible`, `toContainText`, `toHaveAttribute`, `toBeTruthy`, `toEqual`, and similar.
 - Use screenshot helpers from `@utils` when the expected result is visual: `takeElementScreenshot`, `takeEditorScreenshot`, `takeTopToolbarScreenshot`, `takePageScreenshot`, and related helpers.
 - Prefer state assertions over screenshots when the behavior can be checked reliably through DOM state, attributes, text, or API output.
 - When using screenshots in macro mode, existing helpers already handle common details like padding, masking, hidden preview popups, and hidden scrollbars.
 
 ### Naming and comment block
-
 - Each `test()` title must be a plain English sentence that starts with the serial number from the checklist item, for example `Case 1 - ...` or `1. ...`, matching the local style of the target file.
 - Every generated autotest must include a comment block above the test body with:
   - AUTOTEST_REQUEST_URL - link to the Autotest Request issue
   - description
   - scenario steps
   - milestone version
-    Example:
-
+    - Example:
 ```ts
 import { Page, test, expect } from '@fixtures';
 import { CommonTopRightToolbar } from '@tests/pages/common/CommonTopRightToolbar';
@@ -192,7 +192,6 @@ test.describe('Autotests: generated example', () => {
 ```
 
 ### What to avoid
-
 - Do not introduce new libraries.
 - Do not duplicate selectors that already exist in page objects or utils.
 - Do not hardcode sleeps when an existing wait helper or UI state check can be used.
