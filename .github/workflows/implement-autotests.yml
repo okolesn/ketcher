@@ -54,10 +54,15 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: "Generate Playwright autotests and push changes."
+          prompt: |
+            Generate Playwright autotests based on the Autotest Request.
+            1. Under the **Source task(s):** header in the Request, find the link to the Feature. Use it to get the Feature Issue Number and Feature Title.
+            2. Create the directory: ketcher-autotests/tests/specs/Chromium-popup/Features/#<Feature Number>-<Feature Title>. You MUST use the exact format `#<Feature Number>-<Feature Title>`. Don't modify it!
+            3. Create the .spec.ts file inside.
+            4. After creating files, commit and push them to the current branch.
           label_trigger: "Run TA creation workflow"
           claude_args: |
-            --append-system-prompt "Follow Ketcher Test Conventions"
+            --append-system-prompt "Follow instructions from CLAUDE.md file"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
