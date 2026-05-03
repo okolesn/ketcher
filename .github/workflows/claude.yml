@@ -1,7 +1,14 @@
 name: Claude Assistant
 on:
   issues:
-    types: [opened, assigned, labeled]
+    types: [labeled]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+  actions: read
 
 jobs:
   claude-response:
