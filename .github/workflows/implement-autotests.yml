@@ -54,8 +54,10 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: "Generate Playwright autotests"
+          prompt: "Generate Playwright autotests and push changes."
           label_trigger: "Run TA creation workflow"
+          claude_args: |
+            --append-system-prompt "Follow Ketcher Test Conventions"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
