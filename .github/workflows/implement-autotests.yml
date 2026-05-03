@@ -1,9 +1,8 @@
 name: Implement Autotests
 
-# Trigger: comment "@claude implement autotests" on an issue with 'Autotests' label
 on:
-  issue_comment:
-    types: [created]
+  issues:
+    types: [labeled]
 
 permissions:
   contents: write
@@ -16,8 +15,7 @@ jobs:
   implement-autotests:
     if: |
       contains(fromJson('["COLLABORATOR","MEMBER","OWNER"]'), github.event.comment.author_association) &&
-      contains(github.event.issue.labels.*.name, 'Autotests') &&
-      contains(github.event.comment.body, '@claude implement autotests')
+      contains(github.event.issue.labels.*.name, 'Autotests')
 #      &&
 #      (
 #        github.event.issue.issue_type.name == 'Task' ||
@@ -55,8 +53,8 @@ jobs:
         uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: Generate Playwright autotests for Ketcher.
-          allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
+          prompt: "Generate Playwright autotests"
+          label_trigger: "Run TA creation workflow"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
