@@ -54,6 +54,12 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          allowed_tools: |
+            Bash(git status)
+            Bash(git checkout -b claude-*)
+            Bash(git add *)
+            Bash(git commit *)
+            Bash(git push origin HEAD:claude-*)
           prompt: |
             1. Create a new git branch named 'claude/autotests-<feature-number>'.
             2. Generate Playwright autotests based on Autotest Request issue following the Ketcher conventions.
@@ -65,6 +71,7 @@ jobs:
           label_trigger: "Run TA creation workflow"
           claude_args: |
             --append-system-prompt "Follow instructions from CLAUDE.md file"
+            --not-interactive
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
