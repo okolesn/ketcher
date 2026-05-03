@@ -51,11 +51,11 @@ jobs:
             core.setOutput('title', title);
 
       - name: Implement autotests with Claude
-        uses: anthropics/claude-code-action@beta
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: "Generate Playwright autotests"
-#          label_trigger: "Run TA creation workflow"
+          label_trigger: "Run TA creation workflow"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
