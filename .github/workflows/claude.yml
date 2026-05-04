@@ -1,51 +1,40 @@
-name: Claude Assistant
-on:
-  issues:
-    types: [labeled]
+name: Claude Code
 
-permissions:
-  contents: write
-  issues: write
-  pull-requests: write
-  id-token: write
-  actions: read
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, assigned]
+  pull_request_review:
+    types: [submitted]
 
 jobs:
-  claude-response:
+  claude:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v6
         with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
 
-      - uses: anthropics/claude-code-action@v1
+      - name: Run Claude Code
+        id: claude
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Or use OAuth token instead:
-          # claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-
-          # Optional: provide a prompt for automation workflows
-          prompt: "Generate Playwright autotests"
-
-          # Optional: pass advanced arguments to Claude CLI
-          # claude_args: |
-          #   --max-turns 10
-          #   --model claude-4-0-sonnet-20250805
-
-          # Optional: add custom plugin marketplaces
-          # plugin_marketplaces: "https://github.com/user/marketplace1.git\nhttps://github.com/user/marketplace2.git"
-          # Optional: install Claude Code plugins
-          # plugins: "code-review@claude-code-plugins\nfeature-dev@claude-code-plugins"
-
-          # Optional: add custom trigger phrase (default: @claude)
-          # trigger_phrase: "/claude"
-          # Optional: add assignee trigger for issues
-          # assignee_trigger: "claude"
-          # Optional: add label trigger for issues
-          label_trigger: "Run TA creation workflow"
-          # Optional: grant additional permissions (requires corresponding GitHub token permissions)
-          # additional_permissions: |
-          #   actions: read
-          # Optional: allow bot users to trigger the action
-          # allowed_bots: "dependabot[bot],renovate[bot]"
+          prompt: "Summarize the description and put as the issue comment"
+          claude_args: |
+            --allowedTools "Bash(bun install),Bash(bun test:*),Bash(bun run format),Bash(bun typecheck)"
+            --model "claude-opus-4-6"
