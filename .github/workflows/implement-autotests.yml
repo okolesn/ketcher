@@ -1,6 +1,8 @@
 name: Implement Autotests
 
 on:
+  issue_comment:
+    types: [created]
   issues:
     types: [labeled]
 
