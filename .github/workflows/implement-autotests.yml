@@ -13,10 +13,10 @@ permissions:
 
 jobs:
   implement-autotests:
-    if: |
-      contains(fromJson('["COLLABORATOR","MEMBER","OWNER"]'), github.event.comment.author_association) &&
-      contains(github.event.issue.labels.*.name, 'Autotests') &&
-      contains(github.event.issue.labels.*.name, 'Run TA creation workflow')
+#    if: |
+#      contains(fromJson('["COLLABORATOR","MEMBER","OWNER"]'), github.event.comment.author_association) &&
+#      contains(github.event.issue.labels.*.name, 'Autotests') &&
+#      contains(github.event.issue.labels.*.name, 'Run TA creation workflow')
 #      &&
 #      (
 #        github.event.issue.issue_type.name == 'Task' ||
