@@ -54,6 +54,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           allowed_tools: |
             Bash(git status)
             Bash(git checkout -b claude-*)
@@ -61,19 +62,18 @@ jobs:
             Bash(git commit *)
             Bash(git push origin HEAD:claude-*)
           prompt: |
-            1. Create a new git branch named 'claude/autotests-<feature-number>'.
-            2. Generate Playwright autotests based on Autotest Request issue following the Ketcher conventions.
-            3. Under the **Source task(s):** header in the Request, find the link to the Feature. Use it to get the Feature Issue Number and Feature Title.
-            4. Create the directory: ketcher-autotests/tests/specs/Chromium-popup/Features/#<Feature Number>-<Feature Title>. You MUST use the exact format `#<Feature Number>-<Feature Title>`. Don't modify it!
-            5. Save the code into a .spec.ts file in that directory.
-            6. Commit the changes and push the new branch to origin.
-            7. Create a Pull Request to the master branch.
+            Add "Hello world" comment to the issue.
+#            1. Create a new git branch named 'claude/autotests-<feature-number>'.
+#            2. Generate Playwright autotests based on Autotest Request issue following the Ketcher conventions.
+#            3. Under the **Source task(s):** header in the Request, find the link to the Feature. Use it to get the Feature Issue Number and Feature Title.
+#            4. Create the directory: ketcher-autotests/tests/specs/Chromium-popup/Features/#<Feature Number>-<Feature Title>. You MUST use the exact format `#<Feature Number>-<Feature Title>`. Don't modify it!
+#            5. Save the code into a .spec.ts file in that directory.
+#            6. Commit the changes and push the new branch to origin.
+#            7. Create a Pull Request to the master branch.
           label_trigger: "Run TA creation workflow"
-          claude_args: |
-            --append-system-prompt "Follow instructions from CLAUDE.md file"
-            --not-interactive
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          claude_args: |
+#            --append-system-prompt "Follow instructions from CLAUDE.md file"
+#            --not-interactive
 
       - name: Get current branch name
         id: vars
