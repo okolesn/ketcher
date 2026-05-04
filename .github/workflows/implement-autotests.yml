@@ -1,8 +1,6 @@
 name: Implement Autotests
 
 on:
-  issue_comment:
-    types: [created]
   issues:
     types: [labeled]
 
@@ -33,27 +31,27 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-#      - name: Extract and check data
-#        id: issue
-#        uses: actions/github-script@v7
-#        with:
-#          script: |
-#            const issue = context.payload.issue;
-#
-#            if (!issue) {
-#              throw new Error('No issue found in context');
-#            }
-#
-#            const checklistMatches = issue.body?.match(/^\s*-\s\[(?: |x|X)\]\s+.+$/gm) ?? [];
-#            if (checklistMatches.length === 0) {
-#              throw new Error('Autotest Request issue must contain at least one markdown checklist item before PR generation can start.');
-#            }
-#
-#            const title = issue.title;
-#            core.setOutput('title', title);
+      - name: Extract and check data
+        id: issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+
+            if (!issue) {
+              throw new Error('No issue found in context');
+            }
+
+            const checklistMatches = issue.body?.match(/^\s*-\s\[(?: |x|X)\]\s+.+$/gm) ?? [];
+            if (checklistMatches.length === 0) {
+              throw new Error('Autotest Request issue must contain at least one markdown checklist item before PR generation can start.');
+            }
+
+            const title = issue.title;
+            core.setOutput('title', title);
 
       - name: Implement autotests with Claude
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -63,15 +61,13 @@ jobs:
 #            Bash(git add *)
 #            Bash(git commit *)
 #            Bash(git push origin HEAD:claude-*)
-          prompt: |
-            Review this issue and post a comment with:
-            1. Summary
-#            1. Create a new git branch named 'claude/autotests-<feature-number>'.
-#            2. Generate Playwright autotests based on Autotest Request issue following the Ketcher conventions.
-#            3. Under the **Source task(s):** header in the Request, find the link to the Feature. Use it to get the Feature Issue Number and Feature Title.
-#            4. Create the directory: ketcher-autotests/tests/specs/Chromium-popup/Features/#<Feature Number>-<Feature Title>. You MUST use the exact format `#<Feature Number>-<Feature Title>`. Don't modify it!
-#            5. Save the code into a .spec.ts file in that directory.
-#            6. Commit the changes and push the new branch to origin.
+          direct_prompt: |
+            1. Create a new git branch named 'claude/autotests-<feature-number>'.
+            2. Generate Playwright autotests based on Autotest Request issue following the Ketcher conventions.
+            3. Under the **Source task(s):** header in the Request, find the link to the Feature. Use it to get the Feature Issue Number and Feature Title.
+            4. Create the directory: ketcher-autotests/tests/specs/Chromium-popup/Features/#<Feature Number>-<Feature Title>. You MUST use the exact format `#<Feature Number>-<Feature Title>`. Don't modify it!
+            5. Save the code into a .spec.ts file in that directory.
+            6. Commit the changes and push the new branch to origin.
 #            7. Create a Pull Request to the master branch.
           label_trigger: "Run TA creation workflow"
 #          claude_args: |
