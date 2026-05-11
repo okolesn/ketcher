@@ -56,7 +56,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           direct_prompt: |
             1. Create a new git branch named 'claude/autotests-<feature-number>'.
-            2. Generate Playwright autotests based on Autotest Request issue following the Ketcher conventions.
+            2. Generate Playwright autotests based on Autotest Request issue using autotests-generator agent.
             3. Under the **Source task(s):** header in the Request, find the link to the Feature. Use it to get the Feature Issue Number and Feature Title.
             4. Sanitize Feature title.
             5. Create the directory: ketcher-autotests/tests/specs/Chromium-popup/Features/#<Feature Number>-<Sanitized Feature Title>. 
