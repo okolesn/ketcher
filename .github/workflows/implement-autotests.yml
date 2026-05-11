@@ -53,18 +53,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          prompt: |
-            1. Create a new git branch named 'claude/autotests-<feature-number>'.
-            2. Use autotests-generator agent to generate Playwright autotests based on Autotest Request issue.
-            3. Under the **Source task(s):** header in the Request, find the link to the Feature. Use it to get the Feature Issue Number and Feature Title.
-            4. Sanitize Feature title.
-            5. Create the directory: ketcher-autotests/tests/specs/Chromium-popup/Features/#<Feature Number>-<Sanitized Feature Title>. 
-              Example: ketcher-autotests/tests/specs/Chromium-popup/Features/#3227-Introducing-Copolymer-S-group-type
-              You MUST use the exact format `#<Feature Number>-<Sanitized Feature Title>`. Don't modify it!
-            6. Save the code into a .spec.ts file in that directory.
-            7. Commit the changes and push the new branch to origin.
-#          label_trigger: "Run TA creation workflow"
+          prompt: "/implement-autotests REPO: ${{ github.repository }} AUTOTEST_REQUEST_NUMBER: ${{ github.event.issue.number }}"
 
       - name: Get current branch name
         id: vars
