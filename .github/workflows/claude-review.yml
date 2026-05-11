@@ -7,7 +7,7 @@ on:
 jobs:
   review:
     if: |
-      !contains(toLower(github.event.pull_request.title), 'autotests')
+      !contains(github.event.pull_request.title) 'Autotests')
     runs-on: ubuntu-latest
     permissions:
       contents: read
