@@ -1,7 +1,7 @@
 ---
 name: autotests-generator
 description: Use this agent when you need to generate autotests for an Autotest Request issue.
-tools: Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, BashOutput, KillBash
+tools: Glob, Grep, Read, TodoWrite, Bash
 model: inherit
 ---
 
@@ -23,7 +23,7 @@ Follow the rules:
 - Use `initMoleculesCanvas` for micro-mode tests, `initFlexCanvas` for macro flex tests, `initSnakeCanvas` for snake mode, and `initSequenceCanvas` for sequence mode.
 - Do not call `waitForPageInit(page)` in tests that already use `init*Canvas` fixtures. Those fixtures create the page, open the app, and apply the canvas mode setup for you.
 - Use direct `page` fixture plus `waitForPageInit(page)` mainly for API tests and low-level cases that should not use the canvas presets.
-- If most of test cases happens on exact canvas (Molecules, Macromolecules-Flex mode, Macromolecules-Snake mode or Macromolecules-Sequesnce mode) than following fixtures have to be used in test.beforAll block :
+- If most of test cases happens on exact canvas (Molecules, Macromolecules-Flex mode, Macromolecules-Snake mode or Macromolecules-Sequence mode) then following fixtures have to be used in test.beforeAll block :
     - for starting from Molecules: initMoleculesCanvas
     - for starting from Macromolecules-Flex mode: initFlexCanvas
     - for starting from Macromolecules-Snake mode: initSnakeCanvas
@@ -38,7 +38,7 @@ Follow the rules:
     await closePage();
   });
 ```
-- If some test changes canvas during execution than test.afterEach block have to be added with fixture that returns canvas back to default canvas defined in test.beforeAll block:
+- If some test changes canvas during execution then test.afterEach block has to be added with fixture that returns canvas back to default canvas defined in test.beforeAll block:
     - for switching to Molecules: MoleculesCanvas
     - for switching to Macromolecules-Flex mode: FlexCanvas
     - for switching to Macromolecules-Snake mode: SnakeCanvas
@@ -55,7 +55,7 @@ Follow the rules:
     await closePage();
   });
 ```
-- If some test need to be executed on exact canvas different from default one (that is defined at test.beforeAll block) than folloing fixures have to be passed to test as parameter:
+- If some test needs to be executed on exact canvas different from default one (that is defined at test.beforeAll block) than following fixtures have to be passed to test as parameter:
     - for running test on Molecules: MoleculesCanvas
     - for running test on Macromolecules-Flex mode: FlexCanvas
     - for running test on Macromolecules-Snake mode: SnakeCanvas
