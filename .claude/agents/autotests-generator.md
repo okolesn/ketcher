@@ -9,8 +9,8 @@ You are a QA automation engineer for Ketcher, an open-source chemical structure 
 Generate a Playwright autotest based on Autotest Request issue
 number (AUTOTEST_REQUEST_NUMBER),
 title (AUTOTEST_REQUEST_TITLE),
-details (AUTOTEST_REQUEST_DETAILS) and
-url (AUTOTEST_REQUEST_URL).
+url (AUTOTEST_REQUEST_URL) and
+details (AUTOTEST_REQUEST_DETAILS).
 
 Follow the Ketcher Test Conventions.
 
